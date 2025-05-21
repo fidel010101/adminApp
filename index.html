@@ -1,62 +1,76 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel Administrador</title>
+  <title>App Usuario/Admin</title>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <style>
-    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
-    .panel, .formulario { background: white; padding: 20px; border-radius: 10px; max-width: 700px; margin: 20px auto; }
-    input, button { padding: 10px; width: 100%; margin: 10px 0; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border: 1px solid #ccc; }
-    h2, h3 { text-align: center; }
-    #adminPanel { display: none; }
+    body { font-family: Arial; background: #fff8d1; padding: 20px; margin: 0; }
+    .container { max-width: 600px; margin: auto; background: #fff; padding: 20px; border-radius: 12px; box-shadow: 0 0 10px #ccc; }
+    h2 { text-align: center; color: #007bff; }
+    input, button, select { width: 100%; padding: 10px; margin: 10px 0; }
+    button { background-color: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background-color: #0056b3; }
+    .hidden { display: none; }
+    table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
   </style>
 </head>
 <body>
-  <div class="panel">
-    <h2>Acceso de Administrador</h2>
-    <input type="password" id="adminCode" placeholder="Ingresa tu código de acceso">
-    <button onclick="verificarAcceso()">Entrar</button>
+  <div class="container" id="inicio">
+    <h2>¿Quién eres?</h2>
+    <button onclick="mostrarAdmin()">Administrador</button>
+    <button onclick="mostrarUsuario()">Usuario</button>
   </div>
 
-  <div id="adminPanel">
-    <div class="formulario">
-      <h3>Agregar nuevo usuario</h3>
-      <input type="text" id="uid" placeholder="ID del usuario (ej: 1002)">
-      <input type="text" id="nombre" placeholder="Nombre">
-      <input type="text" id="apellido" placeholder="Apellido">
-      <input type="number" id="deuda" placeholder="Deuda total">
-      <input type="number" id="pagominimo" placeholder="Pago mínimo">
-      <input type="text" id="fechaVencimiento" placeholder="Fecha de vencimiento (YYYY-MM-DD)">
-      <input type="text" id="porcentaje" placeholder="Porcentaje (ej: 10%)">
-      <button onclick="guardarUsuario()">Guardar usuario</button>
-    </div>
-
-    <div class="formulario">
-      <h3>Usuarios Registrados</h3>
-      <table id="tablaUsuarios">
-        <thead>
-          <tr>
-            <th>ID</th><th>Nombre</th><th>Apellido</th><th>Deuda</th>
-          </tr>
-        </thead>
-        <tbody id="cuerpoTabla"></tbody>
-      </table>
-    </div>
+  <div class="container hidden" id="loginAdmin">
+    <h2>Administrador</h2>
+    <input type="password" id="adminCode" placeholder="Código de acceso">
+    <button onclick="verificarAdmin()">Entrar</button>
   </div>
+
+  <div class="container hidden" id="panelAdmin">
+    <h2>Panel de Administración</h2>
+    <input type="text" id="uid" placeholder="ID del usuario (ej: 1002)">
+    <input type="text" id="nombre" placeholder="Nombre">
+    <input type="text" id="apellido" placeholder="Apellido">
+    <input type="number" id="deuda" placeholder="Deuda total">
+    <input type="number" id="pagominimo" placeholder="Pago mínimo">
+    <input type="text" id="fechaVencimiento" placeholder="Fecha de vencimiento (YYYY-MM-DD)">
+    <input type="text" id="porcentaje" placeholder="Porcentaje (ej: 10%)">
+    <button onclick="guardarUsuario()">Guardar Usuario</button>
+    <button onclick="cargarUsuarios()">Ver Usuarios</button>
+    <table>
+      <thead>
+        <tr><th>ID</th><th>Nombre</th><th>Apellido</th><th>Deuda</th></tr>
+      </thead>
+      <tbody id="tablaUsuarios"></tbody>
+    </table>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
+  <div class="container hidden" id="loginUsuario">
+    <h2>Usuario</h2>
+    <input type="text" id="userCode" placeholder="Ingresa tu número de usuario">
+    <button onclick="verUsuario()">Ver mi información</button>
+  </div>
+
+  <div class="container hidden" id="panelUsuario">
+    <h2>Tu información</h2>
+    <div id="datosUsuario"></div>
+    <button onclick="cerrarSesion()">Cerrar sesión</button>
+  </div>
+
   <script>
-    // 🔐 Código de acceso
     const adminPass = "224466";
 
-    // 🔧 Configuración de tu Firebase
     const firebaseConfig = {
       apiKey: "TU_API_KEY",
-      authDomain: "TU_DOMINIO",
-      projectId: "TU_PROYECTO",
-      storageBucket: "TU_BUCKET",
+      authDomain: "TU_DOMINIO.firebaseapp.com",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_BUCKET.appspot.com",
       messagingSenderId: "TU_SENDER_ID",
       appId: "TU_APP_ID"
     };
@@ -64,11 +78,21 @@
     firebase.initializeApp(firebaseConfig);
     const db = firebase.firestore();
 
-    function verificarAcceso() {
+    function mostrarAdmin() {
+      ocultarTodo();
+      document.getElementById("loginAdmin").classList.remove("hidden");
+    }
+
+    function mostrarUsuario() {
+      ocultarTodo();
+      document.getElementById("loginUsuario").classList.remove("hidden");
+    }
+
+    function verificarAdmin() {
       const code = document.getElementById("adminCode").value;
       if (code === adminPass) {
-        document.querySelector(".panel").style.display = "none";
-        document.getElementById("adminPanel").style.display = "block";
+        ocultarTodo();
+        document.getElementById("panelAdmin").classList.remove("hidden");
         cargarUsuarios();
       } else {
         alert("❌ Código incorrecto.");
@@ -85,51 +109,61 @@
       const porcentaje = document.getElementById("porcentaje").value.trim();
 
       if (!uid || !nombre || !apellido || isNaN(deuda) || isNaN(pagominimo)) {
-        alert("⚠️ Llena todos los campos obligatorios correctamente.");
+        alert("⚠️ Llena todos los campos obligatorios.");
         return;
       }
 
       db.collection("usuarios").doc(uid).set({
-        nombre,
-        apellido,
-        deuda,
-        pagominimo,
-        fechaVencimiento,
-        porcentage: porcentaje || "10%",
-        pagosRealizados: [],
-        pagosMinimosNoRealisados: []
-      })
-      .then(() => {
+        nombre, apellido, deuda, pagominimo, fechaVencimiento,
+        porcentage: porcentaje || "10%", pagosRealizados: [], pagosMinimosNoRealisados: []
+      }).then(() => {
         alert("✅ Usuario guardado.");
-        limpiarCampos();
         cargarUsuarios();
-      })
-      .catch(err => {
-        console.error("Error al guardar:", err);
-        alert("❌ Error al guardar.");
       });
     }
 
-    function limpiarCampos() {
-      ["uid", "nombre", "apellido", "deuda", "pagominimo", "fechaVencimiento", "porcentaje"]
-        .forEach(id => document.getElementById(id).value = "");
-    }
-
     function cargarUsuarios() {
-      const cuerpo = document.getElementById("cuerpoTabla");
+      const cuerpo = document.getElementById("tablaUsuarios");
       cuerpo.innerHTML = "";
       db.collection("usuarios").get().then(snapshot => {
         snapshot.forEach(doc => {
           const u = doc.data();
           const fila = `<tr>
-            <td>${doc.id}</td>
-            <td>${u.nombre}</td>
-            <td>${u.apellido}</td>
-            <td>$${u.deuda}</td>
+            <td>${doc.id}</td><td>${u.nombre}</td><td>${u.apellido}</td><td>$${u.deuda}</td>
           </tr>`;
           cuerpo.innerHTML += fila;
         });
       });
+    }
+
+    function verUsuario() {
+      const userId = document.getElementById("userCode").value.trim();
+      if (!userId) return alert("⚠️ Ingresa un ID válido.");
+      db.collection("usuarios").doc(userId).get().then(doc => {
+        if (doc.exists) {
+          const u = doc.data();
+          document.getElementById("datosUsuario").innerHTML = `
+            <p><strong>Nombre:</strong> ${u.nombre} ${u.apellido}</p>
+            <p><strong>Deuda actual:</strong> $${u.deuda}</p>
+            <p><strong>Pago mínimo:</strong> $${u.pagominimo}</p>
+            <p><strong>Fecha de vencimiento:</strong> ${u.fechaVencimiento}</p>
+            <p><strong>Porcentaje:</strong> ${u.porcentage}</p>`;
+          ocultarTodo();
+          document.getElementById("panelUsuario").classList.remove("hidden");
+        } else {
+          alert("❌ Usuario no encontrado.");
+        }
+      });
+    }
+
+    function cerrarSesion() {
+      ocultarTodo();
+      document.getElementById("inicio").classList.remove("hidden");
+    }
+
+    function ocultarTodo() {
+      ["inicio", "loginAdmin", "panelAdmin", "loginUsuario", "panelUsuario"]
+        .forEach(id => document.getElementById(id).classList.add("hidden"));
     }
   </script>
 </body>
